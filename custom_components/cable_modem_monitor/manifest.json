@@ -17,8 +17,8 @@
     "solentlabs.cable_modem_monitor_catalog"
   ],
   "requirements": [
-    "solentlabs-cable-modem-monitor-core @ git+https://github.com/jgrumboe/cable_modem_monitor_fork.git@44a2fa2#subdirectory=packages/cable_modem_monitor_core",
-    "solentlabs-cable-modem-monitor-catalog @ git+https://github.com/jgrumboe/cable_modem_monitor_fork.git@44a2fa2#subdirectory=packages/cable_modem_monitor_catalog"
+    "solentlabs-cable-modem-monitor-core @ git+https://github.com/jgrumboe/cable_modem_monitor_fork.git@d07682503e41fc34c96cf64516984bc779783f80#subdirectory=packages/cable_modem_monitor_core",
+    "solentlabs-cable-modem-monitor-catalog @ git+https://github.com/jgrumboe/cable_modem_monitor_fork.git@d07682503e41fc34c96cf64516984bc779783f80#subdirectory=packages/cable_modem_monitor_catalog"
   ],
   "version": "3.14.15-beta.2"
 }
