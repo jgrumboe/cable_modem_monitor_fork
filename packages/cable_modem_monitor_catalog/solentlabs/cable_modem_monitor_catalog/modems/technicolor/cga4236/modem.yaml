@@ -12,6 +12,18 @@ auth:
 
   csrf_header: "X-CSRF-TOKEN"
   csrf_init_endpoint: "/api/v1/session/language"
+  preflight_endpoints:
+    - path: "/api/v1/session/menu"
+      headers:
+        Accept: "*/*"
+    - path: "/views/login.html"
+      headers:
+        Accept: "text/html, */*; q=0.01"
+  preflight_cache_buster: true
+  salt_retry_on:
+    message: "MSG_LOGIN_150"
+  salt_retry_fields:
+    logout: "true"
   double_hash: true
   pbkdf2_iterations: 1000
   pbkdf2_key_length: 128

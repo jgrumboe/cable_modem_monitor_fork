@@ -169,6 +169,14 @@ class HnapAuth(AuthStrategyBase):
     stateless: ClassVar[bool] = False
 
 
+class Pbkdf2PreflightEndpoint(BaseModel):
+    """Optional GET used to prime a modem's login session."""
+
+    model_config = ConfigDict(extra="forbid")
+    path: str
+    headers: dict[str, str] = Field(default_factory=dict)
+
+
 class FormPbkdf2Auth(AuthStrategyBase):
     """Multi-round-trip PBKDF2 challenge-response auth."""
 
@@ -182,6 +190,10 @@ class FormPbkdf2Auth(AuthStrategyBase):
     csrf_init_endpoint: str = ""
     csrf_header: str = ""
     cookie_name: str = ""
+    preflight_endpoints: list[Pbkdf2PreflightEndpoint] = Field(default_factory=list)
+    preflight_cache_buster: bool = False
+    salt_retry_on: dict[str, Any] = Field(default_factory=dict)
+    salt_retry_fields: dict[str, str] = Field(default_factory=dict)
     login_success: dict[str, Any] = Field(default_factory=dict)
     login_busy: dict[str, Any] = Field(default_factory=dict)
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import time
 from typing import Any
 
 import requests
@@ -92,8 +93,35 @@ class FormPbkdf2AuthManager(BaseAuthManager):
             if csrf_token and config.csrf_header:
                 session.headers[config.csrf_header] = csrf_token
 
-        # Step 2: Request server salts
-        salt_result = _request_salts(session, login_url, username, config.salt_trigger, timeout)
+        # Prime browser-like login state when the modem firmware requires it.
+        for endpoint in config.preflight_endpoints:
+            path = endpoint.path
+            if config.preflight_cache_buster:
+                separator = "&" if "?" in path else "?"
+                path = f"{path}{separator}_={int(time.time() * 1000)}"
+            try:
+                session.get(
+                    f"{base_url}{path}",
+                    headers=endpoint.headers,
+                    timeout=timeout,
+                )
+            except requests.RequestException as e:
+                # Priming calls are best-effort; the login request itself
+                # remains responsible for reporting connectivity failures.
+                _logger.debug("PBKDF2 preflight endpoint failed (%s): %s", endpoint.path, e)
+
+        # Step 2: Request server salts. Some firmware rejects the initial
+        # probe while another browser session is active; its configured
+        # retry fields can ask the modem to clear that session and retry.
+        salt_result = _request_salts(
+            session,
+            login_url,
+            username,
+            config.salt_trigger,
+            timeout,
+            retry_on=config.salt_retry_on,
+            retry_fields=config.salt_retry_fields,
+        )
         if isinstance(salt_result, AuthResult):
             return salt_result
         salt_json = salt_result
@@ -175,6 +203,9 @@ def _request_salts(
     username: str,
     salt_trigger: str,
     timeout: int,
+    *,
+    retry_on: dict[str, Any] | None = None,
+    retry_fields: dict[str, str] | None = None,
 ) -> dict[str, str] | AuthResult:
     """POST the salt trigger and return the salt JSON dict.
 
@@ -191,6 +222,19 @@ def _request_salts(
     if isinstance(result, AuthResult):
         return result
     response, salt_json = result
+
+    if not salt_json.get("salt") and retry_on and retry_fields and matches_criteria(salt_json, retry_on):
+        _logger.debug("Salt probe matched retry criteria; retrying with configured fields")
+        retry_result = post_form(
+            session,
+            login_url,
+            {**salt_data, **retry_fields},
+            timeout,
+            context="Salt retry response",
+        )
+        if isinstance(retry_result, AuthResult):
+            return retry_result
+        response, salt_json = retry_result
 
     if not salt_json.get("salt"):
         return AuthResult(success=False, error="No salt in server response", response=response)

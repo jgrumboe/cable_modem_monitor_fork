@@ -26,29 +26,36 @@ These modems use the SJCL JavaScript library for PBKDF2 computation, but unlike 
    or from response header (csrf_header name)
    Set on session: session.headers[csrf_header] = token
 
-2. Request server salts (form-encoded):
+2. Run configured preflight_endpoints (optional) as GET requests, in order.
+   Each endpoint may supply request headers; preflight_cache_buster adds a
+   timestamp query parameter. These calls are best-effort and prime firmware
+   that expects its browser login page/API sequence before authentication.
+
+3. Request server salts (form-encoded):
    POST login_endpoint  username=<user>&password=<salt_trigger>
+   If the response matches salt_retry_on and salt is absent, retry once with
+   salt_retry_fields added to the same form payload.
    Content-Type: application/x-www-form-urlencoded
    Response: {"salt": "<salt_string>", "saltwebui": "<saltwebui_string>"}
    Salt values are plain strings, NOT hex-encoded.
 
-3. Derive key (first hash):
+4. Derive key (first hash):
    PBKDF2-HMAC-SHA256(password.utf8, salt.utf8, iterations, key_len)
    Output: hex string
 
-4. Double-hash (if double_hash: true):
+5. Double-hash (if double_hash: true):
    PBKDF2-HMAC-SHA256(derived_hex.utf8, saltwebui.utf8, iterations, key_len)
    Output: hex string
    If saltwebui missing from response, falls back to salt.
 
-5. POST login (form-encoded):
+6. POST login (form-encoded):
    POST login_endpoint  username=<user>&password=<derived_hex>
    Content-Type: application/x-www-form-urlencoded
    Busy:    HTTP != 401 AND login_busy dict matches response (checked first; AuthResult.busy)
    Success: HTTP != 401 AND ("error" field absent/falsy, OR login_success dict matches response)
    Sets PHPSESSID cookie
 
-6. Subsequent requests:
+7. Subsequent requests:
    GETs use PHPSESSID cookie only
    POSTs include PHPSESSID + csrf_header
 ```
@@ -82,6 +89,8 @@ Fields that map to **firmware** (Technicolor-level):
 - `salt_trigger` -- the magic string that triggers salt response
 - `login_endpoint` -- URL path
 - `csrf_init_endpoint`, `csrf_header` -- CSRF mechanism
+- `preflight_endpoints`, `preflight_cache_buster` -- optional login-page priming
+- `salt_retry_on`, `salt_retry_fields` -- optional one-time salt-probe retry
 - `cookie_name` -- session cookie name
 
 ## Evidence Base

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Technicolor CGA4236 PBKDF2 login retries a busy salt probe.** Prime
+  configured login-page endpoints before authentication and retry once with
+  `logout=true` when the modem responds `MSG_LOGIN_150` to the salt probe.
+
 ## [3.14.15-beta.1] - 2026-09-25
 
 ### Added
